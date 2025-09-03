@@ -9,6 +9,11 @@ try:
 except Exception:
     st = None
 
+try:
+    import streamlit as st  # 선택적 의존성: st.secrets 사용
+except Exception:
+    st = None
+
 """
 공용 DB 연결 유틸리티
 - .env 의 DB_URL을 사용해 SQLAlchemy Engine 제공
