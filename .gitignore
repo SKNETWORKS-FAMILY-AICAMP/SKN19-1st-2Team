@@ -26,6 +26,8 @@ package-lock.json
 
 research/ 
 front/pages/_tmp/
+tmp/
+
 
 # Virtual Environment
 venv/
