@@ -32,8 +32,11 @@ def get_engine(alias: str | None = None) -> Engine:
     if not db_url and alias:
         # 별칭이 비어있다면 기본으로 폴백
         db_url = os.getenv("DB_URL")
+        print(f"환경변수 {env_key}이 없으므로 DB_URL로 폴백합니다.")
     if not db_url:
         raise RuntimeError(
             "환경변수 DB_URL이 없습니다. .env에 DB_URL=mysql+mysqlconnector://user:pass@host:port/db 형식으로 설정하세요."
         )
-    return create_engine(db_url, pool_pre_ping=True, pool_recycle=3600, pool_size=5, max_overflow=10)
+    return create_engine(
+        db_url, pool_pre_ping=True, pool_recycle=3600, pool_size=5, max_overflow=10
+    )
