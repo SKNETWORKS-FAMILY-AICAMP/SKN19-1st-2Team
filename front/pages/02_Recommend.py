@@ -5,21 +5,21 @@
 
 import streamlit as st
 import pandas as pd
+
 import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from back.db.kmj.db_config import get_conn
 
-conn = get_conn()
-cursor = conn.cursor()
-
-# query = "SELECT * FROM vehicle_reg WHERE 1=1"
 
 st.set_page_config(page_title="맞춤 추천 - DOCHICHA.Inc", page_icon="💡")
 
 
 def main():
+    conn = get_conn()
+    cursor = conn.cursor()
+
     st.title("💡 맞춤 추천")
     st.markdown("연령대, 지역, 차종, 예산을 입력하여 맞춤형 차량을 추천받으세요.")
 
@@ -55,9 +55,20 @@ def main():
         brand_preference = st.selectbox(
             "선호 브랜드", ["현대", "기아", "쉐보레", "르노삼성", "쌍용"]
         )
+
     st.text(
-        f"{age_group}, {region}, {car_type}, {gender}, {brand_preference}, {budget}"
+        f"연령대 : {age_group}, 지역 : {region}, 차종 : {car_type}, 성별 : {gender}, 브랜드 : {brand_preference}, 예산 : {budget}"
     )
+    # 등록현황 테이블에서
+    # 연령대가 선호하는 차종 가져오기
+    query = "SELECT DISTINCT comp_name FROM car WHERE age_group = %s AND region = %s AND car_type = %s AND gender = %s AND brand_preference = %s AND budget = %s"
+    cursor.execute(
+        query, (age_group, region, car_type, gender, brand_preference, budget)
+    )
+
+    # 조회한 결과 값
+    result = cursor.fetchall()
+    st.text(f"{result}")
 
     # 추천 버튼
     if st.button("🎯 추천받기", type="primary"):
@@ -83,9 +94,9 @@ def main():
 
         st.dataframe(recommended_cars, use_container_width=True)
 
+    cursor.close()
+    conn.close()
 
-cursor.close()
-conn.close()
 
 if __name__ == "__main__":
     main()
