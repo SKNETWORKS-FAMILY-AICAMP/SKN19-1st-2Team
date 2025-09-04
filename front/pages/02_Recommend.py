@@ -20,6 +20,41 @@ def main():
     conn = get_conn()
     cursor = conn.cursor()
 
+    # 연령대 옵션
+    age_query = "SELECT DISTINCT age_group FROM vehicle_reg"
+    cursor.execute(age_query)
+    age_options = [row[0] for row in cursor.fetchall()]
+
+    # 차종 옵션
+    car_type_query = """
+        SELECT DISTINCT
+        CASE
+            WHEN LOWER(model_type) LIKE '%suv%' THEN 'SUV'
+            WHEN model_type LIKE '%준형%' THEN '준형'
+            WHEN model_type LIKE '%대형%' THEN '대형'
+            WHEN model_type LIKE '%중형%' THEN '중형'
+            ELSE model_type
+        END AS model_type
+        FROM car
+        """
+    cursor.execute(car_type_query)
+    car_type_options = [row[0] for row in cursor.fetchall()]
+
+    # 지역 옵션
+    region_query = "SELECT DISTINCT region FROM vehicle_reg"
+    cursor.execute(region_query)
+    region_options = [row[0] for row in cursor.fetchall()]
+
+    # 성별 옵션
+    gender_query = "SELECT DISTINCT gender FROM vehicle_reg"
+    cursor.execute(gender_query)
+    gender_options = [row[0] for row in cursor.fetchall()]
+
+    # 제조사 옵션
+    brand_query = "SELECT DISTINCT comp_name FROM car"
+    cursor.execute(brand_query)
+    brand_options = [row[0] for row in cursor.fetchall()]
+
     st.title("💡 맞춤 추천")
     st.markdown("연령대, 지역, 차종, 예산을 입력하여 맞춤형 차량을 추천받으세요.")
 
@@ -29,46 +64,31 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        age_group = st.selectbox(
-            "연령대", ["20대", "30대", "40대", "50대", "60대 이상"]
-        )
+        age_group = st.selectbox("연령대", age_options)
         region = st.selectbox(
             "지역",
-            [
-                "서울",
-                "경기",
-                "인천",
-                "부산",
-                "대구",
-                "광주",
-                "대전",
-                "울산",
-                "세종",
-                "기타",
-            ],
+            region_options,
         )
-        budget = st.slider("예산 (만원)", 1000, 10000, 3000)
+        budget = st.slider("예산 (만원)", 2000, 10000, 3000)
 
     with col2:
-        car_type = st.selectbox("선호 차종", ["승용차", "SUV", "트럭", "버스"])
-        gender = st.selectbox("성별", ["남성", "여성"])
-        brand_preference = st.selectbox(
-            "선호 브랜드", ["현대", "기아", "쉐보레", "르노삼성", "쌍용"]
-        )
+        car_type = st.selectbox("선호 차종", car_type_options)
+        gender = st.selectbox("성별", gender_options)
+        brand_preference = st.selectbox("선호 브랜드", brand_options)
 
     st.text(
         f"연령대 : {age_group}, 지역 : {region}, 차종 : {car_type}, 성별 : {gender}, 브랜드 : {brand_preference}, 예산 : {budget}"
     )
     # 등록현황 테이블에서
-    # 연령대가 선호하는 차종 가져오기
-    query = "SELECT DISTINCT comp_name FROM car WHERE age_group = %s AND region = %s AND car_type = %s AND gender = %s AND brand_preference = %s AND budget = %s"
-    cursor.execute(
-        query, (age_group, region, car_type, gender, brand_preference, budget)
-    )
+    # 사용자가 원하는 제조사와 가격 범위, 차종에 맞는 차량 추천
+    # query = "SELECT DISTINCT comp_name FROM car WHERE age_group = %s AND region = %s AND car_type = %s AND gender = %s AND brand_preference = %s AND budget = %s"
+    # cursor.execute(
+    #     query, (age_group, region, car_type, gender, brand_preference, budget)
+    # )
 
-    # 조회한 결과 값
-    result = cursor.fetchall()
-    st.text(f"{result}")
+    # # 조회한 결과 값
+    # result = cursor.fetchall()
+    # st.text(f"{result}")
 
     # 추천 버튼
     if st.button("🎯 추천받기", type="primary"):
