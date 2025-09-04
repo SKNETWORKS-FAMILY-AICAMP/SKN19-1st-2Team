@@ -69,9 +69,9 @@ def main():
         gender = st.selectbox("성별", gender_options)
         brand_preference = st.selectbox("선호 브랜드", brand_options)
 
-    st.text(
-        f"연령대 : {age_group}, 지역 : {region}, 차종 : {car_type}, 성별 : {gender}, 브랜드 : {brand_preference}, 예산 : {budget_million}만원"
-    )
+    # st.text(
+    #     f"연령대 : {age_group}, 지역 : {region}, 차종 : {car_type}, 성별 : {gender}, 브랜드 : {brand_preference}, 예산 : {budget_million}만원"
+    # )
 
     # ====== 핵심: 추천 쿼리 ======
     # 1) 가격 범위(만원 → 원 변환): 예산 ±500만원을 기본 범위로
@@ -100,36 +100,154 @@ def main():
     # 추천 버튼
     if st.button("🎯 추천받기", type="primary"):
         try:
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
+            # ---------- 1) 가격 범위 단계적 완화 ----------
+            pads_million = [500, 1000, 2000]  # ±50/100/2000만원
+            rows = []
+            used_pad = None
 
+            # 제조사/차종 매칭을 조금 유연하게: (정확 일치 + 간단 부분일치 허용)
+            # - maker_like: 대소문자 무시 부분일치 (예: 'Hyun'도 매칭)
+            maker_like = f"%{brand_preference.strip()}%" if brand_preference else None
+
+            # - car_type_match: 'SUV' 선택 시 'suv'가 들어간 모든 값 매칭
+            #   (사전 매핑을 이미 UI에서 했지만 DB쪽도 안전하게)
+            car_type_like = None
+            if car_type:
+                if car_type.upper() == "SUV":
+                    car_type_like = "%suv%"
+                else:
+                    car_type_like = f"%{car_type.strip()}%"
+
+            base_query = """
+                SELECT car_id, comp_name, model_name, model_price, model_type, img_url,
+                    -- 일치도 플래그
+                    (CASE WHEN comp_name = %s OR LOWER(comp_name) LIKE LOWER(%s) THEN 1 ELSE 0 END) AS maker_match,
+                    (CASE WHEN LOWER(model_type) LIKE LOWER(%s) OR model_type = %s THEN 1 ELSE 0 END) AS type_match
+                FROM car
+                WHERE model_price BETWEEN %s AND %s
+                ORDER BY
+                    ABS(model_price - %s) ASC,
+                    CASE WHEN comp_name = %s OR LOWER(comp_name) LIKE LOWER(%s) THEN 0 ELSE 1 END,
+                    CASE WHEN LOWER(model_type) LIKE LOWER(%s) OR model_type = %s THEN 0 ELSE 1 END,
+                    STR_TO_DATE(launch_date, '%%Y%%m%%d') DESC
+                LIMIT %s
+            """
+
+            for pad in pads_million:
+                min_price = max(0, (budget_million - pad) * 10000)
+                max_price = (budget_million + pad) * 10000
+                target_price = (min_price + max_price) // 2
+
+                params = (
+                    brand_preference,
+                    maker_like or "",
+                    car_type_like or "",
+                    car_type,
+                    min_price,
+                    max_price,
+                    target_price,
+                    brand_preference,
+                    maker_like or "",
+                    car_type_like or "",
+                    car_type,
+                    30,  # LIMIT
+                )
+
+                cursor.execute(base_query, params)
+                rows = cursor.fetchall()
+                if rows:
+                    used_pad = pad
+                    break
+
+            # ---------- 2) 스코어링(마지막 완화 단계) ----------
+            if not rows:
+                # 가격 범위 밖도 점수 페널티로 하단에 노출
+                # - 가격: 범위 안 0점 / 밖이면 100 + 차이
+                # - 제조사 불일치 +10, 차종 불일치 +5
+                # - maker/type 부분일치도 인정
+                pad = 2000  # 기준 범위(±2000만원)로 점수화 지표
+                min_price = max(0, (budget_million - pad) * 10000)
+                max_price = (budget_million + pad) * 10000
+                target_price = (min_price + max_price) // 2
+
+                scoring_query = """
+                    SELECT
+                        c.*,
+                        (CASE
+                            WHEN c.model_price BETWEEN %s AND %s THEN 0
+                            ELSE 100 + ABS(c.model_price - %s)
+                        END)
+                        + (CASE WHEN c.comp_name = %s OR LOWER(c.comp_name) LIKE LOWER(%s) THEN 0 ELSE 10 END)
+                        + (CASE WHEN LOWER(c.model_type) LIKE LOWER(%s) OR c.model_type = %s THEN 0 ELSE 5 END)
+                        AS score,
+                        (CASE WHEN c.comp_name = %s OR LOWER(c.comp_name) LIKE LOWER(%s) THEN 1 ELSE 0 END) AS maker_match,
+                        (CASE WHEN LOWER(c.model_type) LIKE LOWER(%s) OR c.model_type = %s THEN 1 ELSE 0 END) AS type_match
+                    FROM car c
+                    ORDER BY score ASC, STR_TO_DATE(c.launch_date, '%%Y%%m%%d') DESC
+                    LIMIT %s
+                """
+                params = (
+                    min_price,
+                    max_price,
+                    target_price,
+                    brand_preference,
+                    maker_like or "",
+                    car_type_like or "",
+                    car_type,
+                    brand_preference,
+                    maker_like or "",
+                    car_type_like or "",
+                    car_type,
+                    30,
+                )
+                cursor.execute(scoring_query, params)
+                rows = cursor.fetchall()
+
+            # ---------- 3) 결과 출력 ----------
             if not rows:
                 st.warning(
-                    "조건에 맞는 차량이 없습니다. 예산 범위를 넓혀보세요 (슬라이더 조정)."
+                    "조건에 맞는 차량이 없습니다. 예산 슬라이더를 조금 더 넓혀보거나, 브랜드/차종을 바꿔보세요."
                 )
             else:
-                # 표로 가공
                 df = pd.DataFrame(
                     rows,
-                    columns=[
-                        "car_id",
-                        "브랜드",
-                        "차량명",
-                        "가격(원)",
-                        "차종",
-                        "이미지",
-                    ],
-                )
-                # 보기 좋게 만원 단위로 변환 컬럼 추가
-                df["가격(만원)"] = (df["가격(원)"] // 10000).astype(int)
-                st.subheader("🎉 추천 결과")
-                st.dataframe(
-                    df[["브랜드", "차량명", "차종", "가격(만원)", "이미지"]],
-                    use_container_width=True,
+                    columns=[col[0] for col in cursor.description],  # 컬럼 자동 반영
                 )
 
+                # 보기 좋게 가공
+                if "model_price" in df.columns:
+                    df["가격(만원)"] = (df["model_price"] // 10000).astype(int)
+                if {"maker_match", "type_match"}.issubset(df.columns):
+                    df["일치도"] = df.apply(
+                        lambda r: ("제조사✓" if r.get("maker_match") else "제조사×")
+                        + " / "
+                        + ("차종✓" if r.get("type_match") else "차종×"),
+                        axis=1,
+                    )
+
+                title = "🎉 추천 결과"
+                if used_pad is not None:
+                    title += f"  (예산 ±{used_pad}만원 범위)"
+                else:
+                    title += "  (완화 매칭: 스코어 순)"
+
+                st.subheader(title)
+                display_cols = [
+                    c
+                    for c in [
+                        "comp_name",
+                        "model_name",
+                        "model_type",
+                        "가격(만원)",
+                        "일치도",
+                        "img_url",
+                    ]
+                    if c in df.columns
+                ]
+                st.dataframe(df[display_cols], use_container_width=True)
+
         except Exception as e:
-            st.error(f"쿼리 실행 중 오류가 발생했습니다: {e}")
+            st.error(f"추천 중 오류가 발생했습니다: {e}")
 
     cursor.close()
     conn.close()
