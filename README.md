@@ -15,28 +15,22 @@
 
 ```
 project_1st/
-├── app/                          # Streamlit 애플리케이션
-│   ├── streamlit_app.py         # 메인(Home) 페이지
-│   ├── pages/                   # 각 기능별 페이지
-│   │   ├── 01_Search.py         # 신차 검색
-│   │   ├── 02_Recommend.py      # 추천
-│   │   ├── 03_Compare.py        # 비교
-│   │   ├── 04_Service_Centers.py # 정비소 현황
-│   │   └── 05_FAQ.py            # FAQ
-│   └── components/              # 공통 UI 위젯 모음
-├── config/                      # 설정 파일
-│   └── settings.example.toml    # 설정 예시
+├── front/                       # Streamlit 프런트엔드
+│   ├── main.py                  # 메인(Home) 페이지 진입점
+│   └── pages/                   # 각 기능별 페이지
+│       ├── 01_Search.py         # 신차 검색
+│       ├── 02_Recommend.py      # 추천
+│       ├── 03_Compare.py        # 비교
+│       └── 04_Service_Centers.py# 정비소 현황
+├── back/                        # 백엔드/공용 모듈
+│   └── db/
+│       └── conn.py              # 공용 DB 커넥션 유틸 (DB_URL 읽음)
 ├── data/                        # 데이터 저장소
-│   ├── raw/                     # 원본 JSON/CSV/XML
-│   ├── interim/                 # 정제 후 캐시본
-│   └── external/                # 외부 참조 데이터
-├── src/                         # 소스 코드
-│   ├── ingest/                  # 데이터 로더
-│   ├── cleaning/                # 데이터 정제
-│   └── utils/                   # 경로/공통 함수
-├── notebooks/                   # 데이터 분석/EDA 노트북
+│   ├── raw/
+│   ├── interim/
+│   └── external/
 ├── requirements.txt             # Python 의존성
-├── package.json                 # Node.js 설정
+├── env.example                  # 환경변수 예시(.env 템플릿)
 └── README.md                    # 프로젝트 문서
 ```
 
@@ -58,22 +52,30 @@ npm install
 
 ### 2. 환경 변수 설정
 
+옵션 A) 루트 .env 사용(권장)
 ```bash
-# 환경 변수 파일 복사
 cp env.example .env
-
-# .env 파일 편집하여 데이터베이스 정보 입력
+# .env 를 열어 DB_URL 값을 채웁니다 (예시)
+# DB_URL=mysql+pymysql://user:password@127.0.0.1:3306/dbname
 ```
+
+옵션 B) Streamlit secrets 사용(동일 효과)
+```
+front/.streamlit/secrets.toml
+
+DB_URL = "mysql+pymysql://user:password@127.0.0.1:3306/dbname"
+```
+
+참고: 보안상 .env/.toml 파일은 Git에 커밋하지 않습니다. 각 개발자 로컬에서 개별 구성합니다.
 
 ### 3. 애플리케이션 실행
 
 #### Streamlit으로 실행
 ```bash
-# 개발 모드로 실행
-npm run dev
+# 프로젝트 루트에서 실행
+pip install -r requirements.txt
 
-# 또는 직접 실행
-streamlit run app/streamlit_app.py
+streamlit run front/main.py
 ```
 
 #### Node.js 스크립트로 실행
@@ -86,11 +88,13 @@ npm run start
 
 ### MySQL 설정
 1. MySQL 서버 설치 및 실행
-2. 데이터베이스 생성:
+2. 데이터베이스 생성(예시):
    ```sql
-   CREATE DATABASE dochicha_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE DATABASE dochicar CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
-3. `.env` 파일에 데이터베이스 연결 정보 입력
+3. 연결 정보는 `.env` 또는 `front/.streamlit/secrets.toml`의 `DB_URL`에 설정
+   - 예: `DB_URL=mysql+pymysql://dochicar:dochicar@127.0.0.1:3306/dochicar`
+   - mysqlconnector를 선호하면: `mysql+mysqlconnector://user:pass@host:3306/dbname`
 
 ## 📊 주요 기능
 
