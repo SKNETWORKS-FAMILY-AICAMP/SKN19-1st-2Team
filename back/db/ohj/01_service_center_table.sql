@@ -1,3 +1,14 @@
+-- =============================================
+-- 01_service_center_table.sql
+-- DOCHICAR 프로젝트 - 정비소 테이블 생성 스크립트
+-- 실행 순서: 1번 (가장 먼저 실행)
+-- =============================================
+
+-- 1) 데이터베이스 생성
+CREATE DATABASE IF NOT EXISTS dochicar DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE dochicar;
+
+-- 2) 사용자 생성 및 권한 부여
 -- 안전하게 초기화
 DROP USER IF EXISTS 'dochicar'@'localhost';
 DROP USER IF EXISTS 'dochicar'@'127.0.0.1';
@@ -12,11 +23,7 @@ GRANT ALL PRIVILEGES ON dochicar.* TO 'dochicar'@'127.0.0.1';
 
 FLUSH PRIVILEGES;
 
--- 0) 스키마
-CREATE DATABASE IF NOT EXISTS dochicar DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-USE dochicar;
-
--- 1) 정비소 테이블
+-- 3) 정비소 테이블 생성
 CREATE TABLE IF NOT EXISTS service_center (
   id               INT AUTO_INCREMENT PRIMARY KEY,
   name_ko          VARCHAR(200) NOT NULL COMMENT '자동차정비업체명',
@@ -52,5 +59,7 @@ CREATE TABLE IF NOT EXISTS service_center (
   INDEX idx_name_addr (name_ko, addr_road)
 );
 
-SELECT * FROM service_center;
-
+-- 4) 테이블 생성 확인
+SELECT 'service_center 테이블이 성공적으로 생성되었습니다.' AS message;
+SELECT COUNT(*) AS table_exists FROM information_schema.tables 
+WHERE table_schema = 'dochicar' AND table_name = 'service_center';

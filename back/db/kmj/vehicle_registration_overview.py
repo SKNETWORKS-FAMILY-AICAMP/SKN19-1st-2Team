@@ -1,6 +1,6 @@
 from openpyxl import load_workbook
 import pandas as pd
-from back.db.kmj.db_config import get_conn
+from db_config import get_conn
 
 
 def infer_reg_month(filename: str, ws) -> pd.Timestamp:
@@ -115,26 +115,28 @@ tidy["age_group"] = tidy["age_group"].astype(str).str.strip()
 tidy["region"] = tidy["region"].astype(str).str.strip()
 tidy["reg_count"] = tidy["reg_count"].astype("Int64")
 
+
+# reg_month에서 연도와 월 분리
 reg_month = infer_reg_month(filename, ws)
+reg_year = reg_month.year
+reg_month_num = f"{reg_month.month:02d}"
 
-tidy["reg_month"] = reg_month
-tidy = tidy[["reg_month", "region", "gender", "age_group", "reg_count"]]
-tidy["reg_month"] = tidy["reg_month"].dt.date  # python date로
-
-tidy = tidy.copy()
-tidy["reg_month"] = pd.to_datetime(tidy["reg_month"]).dt.date
+tidy["reg_year"] = reg_year
+tidy["reg_month"] = reg_month_num
+tidy = tidy[["reg_year", "reg_month", "region", "gender", "age_group", "reg_count"]]
 
 insert_sql = """
 INSERT INTO vehicle_reg
-    (reg_month, region, gender, age_group, reg_count)
+    (reg_year, reg_month, region, gender, age_group, reg_count)
 VALUES
-    (%s, %s, %s, %s, %s)
+    (%s, %s, %s, %s, %s, %s)
 ON DUPLICATE KEY UPDATE
     reg_count = VALUES(reg_count)
 """
 
 params = [
     (
+        row["reg_year"],
         row["reg_month"],
         row["region"],
         row["gender"],
