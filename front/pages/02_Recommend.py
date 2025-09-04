@@ -105,24 +105,19 @@ def main():
             rows = []
             used_pad = None
 
-            # 제조사/차종 매칭을 조금 유연하게: (정확 일치 + 간단 부분일치 허용)
-            # - maker_like: 대소문자 무시 부분일치 (예: 'Hyun'도 매칭)
-            maker_like = f"%{brand_preference.strip()}%" if brand_preference else None
+            # 부분일치 허용(대소문자 무시)
+            maker_like = f"%{brand_preference.strip()}%" if brand_preference else "%"
 
-            # - car_type_match: 'SUV' 선택 시 'suv'가 들어간 모든 값 매칭
-            #   (사전 매핑을 이미 UI에서 했지만 DB쪽도 안전하게)
-            car_type_like = None
+            ## SUV 등 간단 매칭
             if car_type:
-                if car_type.upper() == "SUV":
-                    car_type_like = "%suv%"
-                else:
-                    car_type_like = f"%{car_type.strip()}%"
+                car_type_like = (
+                    "%suv%" if car_type.upper() == "SUV" else f"%{car_type.strip()}%"
+                )
+            else:
+                car_type_like = "%"
 
             base_query = """
-                SELECT car_id, comp_name, model_name, model_price, model_type, img_url,
-                    -- 일치도 플래그
-                    (CASE WHEN comp_name = %s OR LOWER(comp_name) LIKE LOWER(%s) THEN 1 ELSE 0 END) AS maker_match,
-                    (CASE WHEN LOWER(model_type) LIKE LOWER(%s) OR model_type = %s THEN 1 ELSE 0 END) AS type_match
+                SELECT car_id, comp_name, model_name, model_price, model_type, img_url
                 FROM car
                 WHERE model_price BETWEEN %s AND %s
                 ORDER BY
@@ -138,19 +133,16 @@ def main():
                 max_price = (budget_million + pad) * 10000
                 target_price = (min_price + max_price) // 2
 
+                # ✅ 플레이스홀더 8개에 정확히 맞춘 순서
                 params = (
-                    brand_preference,
-                    maker_like or "",
-                    car_type_like or "",
-                    car_type,
-                    min_price,
-                    max_price,
-                    target_price,
-                    brand_preference,
-                    maker_like or "",
-                    car_type_like or "",
-                    car_type,
-                    30,  # LIMIT
+                    min_price,  # WHERE BETWEEN %s
+                    max_price,  # WHERE BETWEEN %s
+                    target_price,  # ABS(model_price - %s)
+                    brand_preference,  # comp_name = %s
+                    maker_like,  # LOWER(comp_name) LIKE LOWER(%s)
+                    car_type_like,  # LOWER(model_type) LIKE LOWER(%s)
+                    car_type,  # model_type = %s
+                    30,  # LIMIT %s
                 )
 
                 cursor.execute(base_query, params)
@@ -172,16 +164,19 @@ def main():
 
                 scoring_query = """
                     SELECT
-                        c.*,
+                        c.car_id,
+                        c.comp_name,
+                        c.model_name,
+                        c.model_price,
+                        c.model_type,
+                        c.img_url,
                         (CASE
                             WHEN c.model_price BETWEEN %s AND %s THEN 0
                             ELSE 100 + ABS(c.model_price - %s)
                         END)
                         + (CASE WHEN c.comp_name = %s OR LOWER(c.comp_name) LIKE LOWER(%s) THEN 0 ELSE 10 END)
                         + (CASE WHEN LOWER(c.model_type) LIKE LOWER(%s) OR c.model_type = %s THEN 0 ELSE 5 END)
-                        AS score,
-                        (CASE WHEN c.comp_name = %s OR LOWER(c.comp_name) LIKE LOWER(%s) THEN 1 ELSE 0 END) AS maker_match,
-                        (CASE WHEN LOWER(c.model_type) LIKE LOWER(%s) OR c.model_type = %s THEN 1 ELSE 0 END) AS type_match
+                        AS score
                     FROM car c
                     ORDER BY score ASC, STR_TO_DATE(c.launch_date, '%%Y%%m%%d') DESC
                     LIMIT %s
@@ -190,10 +185,6 @@ def main():
                     min_price,
                     max_price,
                     target_price,
-                    brand_preference,
-                    maker_like or "",
-                    car_type_like or "",
-                    car_type,
                     brand_preference,
                     maker_like or "",
                     car_type_like or "",
@@ -216,14 +207,9 @@ def main():
 
                 # 보기 좋게 가공
                 if "model_price" in df.columns:
-                    df["가격(만원)"] = (df["model_price"] // 10000).astype(int)
-                if {"maker_match", "type_match"}.issubset(df.columns):
-                    df["일치도"] = df.apply(
-                        lambda r: ("제조사✓" if r.get("maker_match") else "제조사×")
-                        + " / "
-                        + ("차종✓" if r.get("type_match") else "차종×"),
-                        axis=1,
-                    )
+                    df["가격(만원)"] = (
+                        pd.to_numeric(df["model_price"], errors="coerce") // 10000
+                    ).astype("Int64")
 
                 title = "🎉 추천 결과"
                 if used_pad is not None:
@@ -239,7 +225,6 @@ def main():
                         "model_name",
                         "model_type",
                         "가격(만원)",
-                        "일치도",
                         "img_url",
                     ]
                     if c in df.columns
