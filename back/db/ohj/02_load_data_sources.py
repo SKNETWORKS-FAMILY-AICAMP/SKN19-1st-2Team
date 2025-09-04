@@ -1,6 +1,7 @@
 """
-데이터 로더
-공공데이터, 크롤링 데이터 등을 로드하는 모듈
+02_load_data_sources.py
+DOCHICAR 프로젝트 - 데이터 소스 로더
+실행 순서: 2번 (01_service_center_table.sql 실행 후)
 """
 
 import pandas as pd
@@ -67,10 +68,10 @@ class DataLoader:
             raise
 
 def load_auto_repair_data(data_dir: Path) -> pd.DataFrame:
-    """자동차 정비소 데이터 로드"""
+    """자동차 정비소 데이터 로드 - 현재 폴더 구조에 맞게 수정"""
     loader = DataLoader(data_dir)
     
-    # CSV 파일이 있으면 CSV로, 없으면 JSON으로 시도
+    # 현재 폴더 구조: data/ohj/auto_repair_standard.csv
     csv_file = "auto_repair_standard.csv"
     json_file = "auto_repair_standard.json"
     
@@ -103,3 +104,15 @@ def load_car_registration_data(data_dir: Path) -> pd.DataFrame:
         return loader.load_excel(excel_files[0].name)
     
     raise FileNotFoundError("지원하는 형식의 자동차 등록 현황 데이터 파일을 찾을 수 없습니다.")
+
+if __name__ == "__main__":
+    # 테스트 실행
+    ROOT = Path(__file__).resolve().parents[2]  # project_1st/
+    DATA_DIR = ROOT / "data" / "ohj"
+    
+    try:
+        df = load_auto_repair_data(DATA_DIR)
+        print(f"✅ 정비소 데이터 로드 성공: {df.shape}")
+        print(f"컬럼: {list(df.columns)}")
+    except Exception as e:
+        print(f"❌ 데이터 로드 실패: {e}")
