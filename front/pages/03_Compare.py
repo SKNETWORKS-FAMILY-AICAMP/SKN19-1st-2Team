@@ -24,9 +24,6 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_NAME')
 )
 
-#DB 커넥트 커서 생성
-
-
 #STREAMLIT 페이지
 st.set_page_config(
     page_title="차량 비교 - DOCHICHA.Inc",
@@ -36,12 +33,6 @@ st.set_page_config(
 
 
 def main():
-    st.markdown("최대 3개 차량을 비교하여 최적의 선택을 하세요.")
-    
-    # 차량 선택
-    # st.subheader("🚗 비교할 차량 선택")
-    
-
     #comparison_data = pd.read_sql("SELECT * FROM car", con=conn)
     # st.dataframe(comparison_data, use_container_width=True)
     
@@ -55,13 +46,13 @@ def main():
 
     # st.pyplot(fig)
 
-#랜더링
-    # ensure_session()
-    # sel = list(st.session_state.favorites)
+    #랜더링
+    ensure_session()
+    sel = list(st.session_state.favorites)
     sel = [2, 6, 12]
 
     st.title("⚖️ 차량 비교")
-    st.caption("열람 페이지에서 ⭐로 담은 모델만 불러와 나란히 비교해요.")
+    st.caption("열람 페이지에서 ⭐로 담은 모델을 불러와 비교합니다.")
 
     top_l, top_r = st.columns([1, 1])
     with top_l:
@@ -82,7 +73,11 @@ def main():
         st.stop()
 
     placeholders = ','.join(['%s'] * len(sel))
-    query = f"SELECT car_id, comp_name, model_name, img_url FROM car WHERE car_id IN ({placeholders})"
+    query = f"""SELECT c.car_id, c.model_name, c.img_url, c.launch_date, model_type, model_price, resrc_amount, efficiency_amount, wait_period, GROUP_CONCAT(f.fuel_type SEPARATOR ', ') AS fuel_types
+                FROM car c
+                LEFT JOIN fuel f ON c.model_name = f.model_name
+                WHERE c.car_id IN ({placeholders})
+                GROUP BY c.car_id, c.model_name, c.img_url, launch_date, model_type, model_price, resrc_amount, efficiency_amount, wait_period;"""
 
     cursor = conn.cursor(dictionary=True)
     cursor.execute(query, tuple(sel))
@@ -101,7 +96,8 @@ def main():
         row = df.iloc[idx]
         with col:
             st.image(row['img_url'], use_container_width=True)
-            st.markdown(f"**{row['comp_name']} {row['model_name']}**")
+            st.markdown(f"**{row['model_name']} {row['fuel_types']}**")
+            st.dataframe(row.drop('img_url'))
 
 
 # # 비교표 준비
