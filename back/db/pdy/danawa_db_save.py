@@ -1,13 +1,6 @@
 import pandas as pd
 from sqlalchemy import create_engine
-<<<<<<< HEAD
 
-# 엑셀 로드
-df = pd.read_excel('danawa_car_data1.xlsx')
-
-# MySQL 연결
-engine = create_engine("mysql+pymysql://ohgiraffers:ohgiraffers@localhost:3306/dochidb")
-=======
 from dotenv import load_dotenv
 load_dotenv()
 import os
@@ -19,28 +12,15 @@ if not DB_URL:
 
 
 # 엑셀 로드
-df = pd.read_excel('data/pdy/danawa_car_data1.xlsx')
+df_car = pd.read_excel('data/pdy/danawa_car_data1.xlsx')
+df_fuel = pd.read_excel('data/pdy/DANAWA_car_fuel_data1.xlsx')
 
-# MySQL 연결
-# DB 
-engine = create_engine(DB_URL)
->>>>>>> origin
-
-# INSERT 실행
-df.to_sql(name='car', con=engine, if_exists='append', index=False)
-
-
-<<<<<<< HEAD
-df = pd.read_excel('DANAWA_car_fuel_data1.xlsx')
-
-# MySQL 연결
-engine = create_engine("mysql+pymysql://ohgiraffers:ohgiraffers@localhost:3306/dochidb")
-=======
-df = pd.read_excel('data/pdy/DANAWA_car_fuel_data1.xlsx')
 
 # MySQL 연결
 engine = create_engine(DB_URL)
->>>>>>> origin
 
-# INSERT 실행
-df.to_sql(name='fuel', con=engine, if_exists='append', index=False)
+# car 테이블 INSERT 실행
+df_car.to_sql(name='car', con=engine, if_exists='append', index=False)
+
+# fuel 테이블 INSERT 실행
+df_fuel.to_sql(name='fuel', con=engine, if_exists='append', index=False)
