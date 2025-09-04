@@ -16,6 +16,7 @@ import sys
 import os
 import pandas as pd
 from sqlalchemy import create_engine
+<<<<<<< HEAD
 from sqlalchemy.exc import SQLAlchemyError
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
@@ -23,6 +24,24 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 # 프로젝트 루트 ( .../back/db/pdy/ 에서 3단계 상위 )
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = PROJECT_ROOT / "data" / "pdy"
+=======
+from dotenv import load_dotenv
+load_dotenv()
+import os
+
+DB_URL = os.getenv("DB_URL")
+
+if not DB_URL:
+    raise ValueError("URL 불러오기에 실패했습니다.")
+
+
+# 엑셀 로드
+df = pd.read_excel('data/pdy/danawa_car_data1.xlsx')
+
+# MySQL 연결
+# DB 
+engine = create_engine(DB_URL)
+>>>>>>> origin
 
 CAR_FILE = DATA_DIR / "danawa_car_data1.xlsx"
 FUEL_FILE = DATA_DIR / "DANAWA_car_fuel_data1.xlsx"
@@ -35,6 +54,7 @@ DB_PORT = int(os.getenv("DB_PORT", "3306"))
 DB_NAME = os.getenv("DB_NAME", "dochicar")  # 기존 스크립트 기준
 
 
+<<<<<<< HEAD
 def load_excel(path: Path) -> pd.DataFrame:
     if not path.exists():
         logging.error(f"파일 없음: {path}")
@@ -42,6 +62,12 @@ def load_excel(path: Path) -> pd.DataFrame:
     logging.info(f"엑셀 로드: {path}")
     return pd.read_excel(path)
 
+=======
+df = pd.read_excel('data/pdy/DANAWA_car_fuel_data1.xlsx')
+
+# MySQL 연결
+engine = create_engine(DB_URL)
+>>>>>>> origin
 
 def get_engine():
     # mysql-connector-python 드라이버 사용
