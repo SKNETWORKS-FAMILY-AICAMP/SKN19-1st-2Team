@@ -2,6 +2,14 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
+from sqlalchemy import create_engine
+from datetime import datetime, date
+import os
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 
 st.set_page_config(
     page_title="차량 열람 - DOCHICHA.Inc",
@@ -13,81 +21,95 @@ if "favorites" not in st.session_state:
     st.session_state.favorites = set()
 
 @st.cache_data
+@st.cache_data
 def load_cars():
-    return pd.DataFrame([
-        {
-            "모델ID": 132067,
-            "차량명": "더 뉴 캐스퍼",
-            "브랜드": "현대",
-            "차종": "경형 SUV",
-            "연료": "가솔린",
-            "가격_min(만원)": 1450,
-            "가격_max(만원)": 2107,
-            "출시일자": date(2026, 7, 15),
-            "이미지": "https://cdn.aictimg.com/newcar/model/202410/132067.png",
-            "브랜드로고": "https://cdn.aictimg.com/newcar/brand/147763.png",
-        },
-        {
-            "모델ID": 999001,
-            "차량명": "아반떼",
-            "브랜드": "현대",
-            "차종": "승용차",
-            "연료": "가솔린",
-            "가격_min(만원)": 2000,
-            "가격_max(만원)": 2500,
-            "출시일자": date(2023, 3, 1),
-            "이미지": "https://cdn.aictimg.com/newcar/model/202410/132067.png",
-            "브랜드로고": "https://cdn.aictimg.com/newcar/brand/147763.png",
-        },
-        {
-            "모델ID": 999002,
-            "차량명": "소나타",
-            "브랜드": "현대",
-            "차종": "승용차",
-            "연료": "하이브리드",
-            "가격_min(만원)": 3000,
-            "가격_max(만원)": 3800,
-            "출시일자": date(2024, 2, 20),
-            "이미지": "https://cdn.aictimg.com/newcar/model/202410/132067.png",
-            "브랜드로고": "https://cdn.aictimg.com/newcar/brand/147763.png",
-        },
-        {
-            "모델ID": 999003,
-            "차량명": "투싼",
-            "브랜드": "현대",
-            "차종": "SUV",
-            "연료": "가솔린",
-            "가격_min(만원)": 2500,
-            "가격_max(만원)": 3200,
-            "출시일자": date(2023, 8, 1),
-            "이미지": "https://cdn.aictimg.com/newcar/model/202410/132067.png",
-            "브랜드로고": "https://cdn.aictimg.com/newcar/brand/147763.png",
-        },
-        {
-            "모델ID": 999004,
-            "차량명": "스포티지",
-            "브랜드": "기아",
-            "차종": "SUV",
-            "연료": "하이브리드",
-            "가격_min(만원)": 3100,
-            "가격_max(만원)": 3600,
-            "출시일자": date(2024, 4, 15),
-            "이미지": "https://cdn.aictimg.com/newcar/model/202410/132067.png",
-            "브랜드로고": "https://cdn.aictimg.com/newcar/brand/147763.png",
-        },
-        {
-            "모델ID": 999005,
-            "차량명": "EV6",
-            "브랜드": "기아",
-            "차종": "SUV",
-            "연료": "전기",
-            "가격_min(만원)": 4800,
-            "가격_max(만원)": 6300,
-            "출시일자": date(2022, 11, 11),
-            "이미지": "https://cdn.aictimg.com/newcar/model/202410/132067.png",
-            "브랜드로고": "https://cdn.aictimg.com/newcar/brand/147763.png",
-        },
-    ])
+    DB_URL = os.getenv("DB_URL", "").strip()
+    car_df = None
+    fuel_df = None
+
+    def _parse_launch(v):
+        if pd.isna(v):
+            return pd.NaT
+        s = str(v).strip()
+        # DB는 YYYYMMDD(8자리) 기준
+        if s.isdigit() and len(s) == 8:
+            try:
+                return datetime.strptime(s, "%Y%m%d").date()
+            except Exception:
+                return pd.NaT
+        # 엑셀 등 다른 포맷도 유연 처리
+        try:
+            return pd.to_datetime(s).date()
+        except Exception:
+            return pd.NaT
+
+    # 1) 우선 DB 시도
+    if DB_URL:
+        try:
+            engine = create_engine(DB_URL)
+            car_df  = pd.read_sql("SELECT * FROM car", con=engine)
+            try:
+                fuel_df = pd.read_sql("SELECT model_name, fuel_type FROM fuel", con=engine)
+            except Exception:
+                fuel_df = pd.DataFrame(columns=["model_name", "fuel_type"])
+        except Exception as e:
+            st.warning(f"DB 연결 실패로 엑셀로 대체합니다. ({e})")
+
+    # 2) DB가 없거나 실패하면 엑셀 fallback
+    if car_df is None:
+        for p in ["data/pdy/danawa_car_data1.xlsx", "danawa_car_data1.xlsx"]:
+            if os.path.exists(p):
+                car_df = pd.read_excel(p)
+                break
+        if car_df is None:
+            st.error("차량 엑셀(danawa_car_data1.xlsx)을 찾을 수 없습니다.")
+            return pd.DataFrame()
+
+    if fuel_df is None:
+        for p in ["data/pdy/DANAWA_car_fuel_data1.xlsx", "DANAWA_car_fuel_data1.xlsx"]:
+            if os.path.exists(p):
+                fuel_df = pd.read_excel(p)
+                break
+        if fuel_df is None:
+            fuel_df = pd.DataFrame(columns=["model_name", "fuel_type"])
+
+    # fuel 집계: 모델별 복수 연료 → '가솔린/하이브리드' 형태로 합치기
+    if not fuel_df.empty:
+        fuel_agg = (fuel_df
+                    .dropna(subset=["model_name", "fuel_type"])
+                    .groupby("model_name")["fuel_type"]
+                    .apply(lambda s: "/".join(sorted(pd.unique(s)))).reset_index())
+        fuel_agg.rename(columns={"fuel_type": "연료"}, inplace=True)
+        df = car_df.merge(fuel_agg, on="model_name", how="left")
+    else:
+        df = car_df.copy()
+        df["연료"] = df.get("resrc_type", "")
+
+    # Streamlit 카드/필터가 기대하는 컬럼으로 매핑
+    out = pd.DataFrame()
+    out["모델ID"]        = df.get("car_id", pd.Series(range(1, len(df)+1)))
+    out["차량명"]        = df.get("model_name", "")
+    out["브랜드"]        = df.get("comp_name", "")
+    out["차종"]          = df.get("model_type", "")
+    out["연료"]          = df.get("연료", df.get("resrc_type", ""))
+    # 단가만 있을 경우 min=max 동일하게 세팅 (단위는 '만원' 기준으로 준비 권장)
+    price = df.get("model_price", 0).fillna(0).astype("int64", errors="ignore")
+    out["가격_min(만원)"] = price
+    out["가격_max(만원)"] = price
+    out["이미지"]        = df.get("img_url", "")
+    out["브랜드로고"]    = ""  # 현재 UI에서 미사용. 필요 시 매핑 dict로 보강 가능.
+
+    # 날짜 파싱
+    out["출시일자"] = df.get("launch_date", "").apply(_parse_launch)
+    # 필터/정렬 안정성을 위해 결측/빈 이름 제거
+    out = out.dropna(subset=["차량명", "브랜드"]).reset_index(drop=True)
+
+    # 혹시 가격 단위가 '원'이면 여기서 10000으로 나눠서 만원 단위로 변환
+    # out["가격_min(만원)"] = (out["가격_min(만원)"] // 10000).astype(int)
+    # out["가격_max(만원)"] = (out["가격_max(만원)"] // 10000).astype(int)
+
+    return out
+
 
 def render_filters(cars: pd.DataFrame):
     st.markdown("### 🔍 빠른 필터")
