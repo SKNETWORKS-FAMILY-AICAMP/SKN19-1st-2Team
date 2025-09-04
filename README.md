@@ -134,7 +134,7 @@ streamlit run front/main.py
 ## 🛠️ 기술 스택
 
 - **Frontend**: Streamlit
-- **Backend**: Python 3.11+
+- **Backend**: Python 3.12
 - **Database**: MySQL
 - **Data Processing**: Pandas, NumPy
 - **Visualization**: Plotly, Matplotlib, Folium
@@ -220,10 +220,6 @@ pip install mysql-connector-python
 <img width="2878" height="1434" alt="image4" src="https://github.com/user-attachments/assets/a542e73c-f503-4a36-9fe8-c18270e9132e" />
 
 <img width="2880" height="1454" alt="image5" src="https://github.com/user-attachments/assets/b61500d5-53ef-4e1c-af52-c198713543df" />
-
-## 📝 라이선스
-
-MIT License
 
 ## 한 줄 회고
 
