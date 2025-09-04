@@ -1,4 +1,4 @@
-use dochidb;
+use dochicar;
 
 CREATE TABLE car (
 	car_id INT auto_increment primary key,
