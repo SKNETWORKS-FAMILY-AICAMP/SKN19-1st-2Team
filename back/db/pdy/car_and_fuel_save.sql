@@ -1,4 +1,3 @@
-
 use dochicar;
 
 CREATE TABLE car (
