@@ -10,6 +10,7 @@
 - 공공데이터와 크롤링 데이터를 통합해 데이터 기반 차량 비교·추천 플랫폼 구현
 - 지역별 정비소 현황을 지도 기반으로 제공하여 구매 후 유지보수까지 고려 가능
 - 소비자의 차량 구매 의사결정을 돕는 원스톱 플랫폼 구축
+- 최근 나온 신차들을 기준으로 삼아 특정 소비자들의 니즈를 만족하고, 등록 데이터와 기업 FAQ를 보여줘 필요한 정보 제공
 
 ## 👥 팀 구성 및 역할 분담
 
@@ -184,6 +185,15 @@ pip install mysql-connector-python
 - [프로젝트 구조 상세](docs/PROJECT_STRUCTURE.md)
 - [프로젝트 기획서](project_plan.md)
 
+## WBS
+
+<img width="905" height="463" alt="image7" src="https://github.com/user-attachments/assets/ed304288-1fde-4511-9ae2-ed89f11b4a7a" />
+
+
+## ERD
+
+<img width="1062" height="714" alt="image" src="https://github.com/user-attachments/assets/b929599a-140f-44d0-85ff-d7a801057ca3" />
+
 ## 📈 기대효과
 
 ### 소비자
@@ -195,14 +205,27 @@ pip install mysql-connector-python
 - Python, MySQL, Streamlit, Web Crawling 등 학습 내용을 종합 적용
 - GitHub 협업과 데이터 정규화 실습을 통한 실무 능력 강화
 
+## 시연 사진/영상
+
+<img width="2878" height="1455" alt="image" src="https://github.com/user-attachments/assets/889b6170-28c5-424e-a72f-2b568ddca14f" />
+
+<img width="2880" height="1559" alt="image2" src="https://github.com/user-attachments/assets/c1a8704e-faef-4ec1-a9b4-cc4bc447cbbf" />
+
+<img width="2880" height="1441" alt="image3" src="https://github.com/user-attachments/assets/b39c8d89-0b09-400c-9dad-afd37f38c18b" />
+
+<img width="2878" height="1434" alt="image4" src="https://github.com/user-attachments/assets/a542e73c-f503-4a36-9fe8-c18270e9132e" />
+
+<img width="2880" height="1454" alt="image5" src="https://github.com/user-attachments/assets/b61500d5-53ef-4e1c-af52-c198713543df" />
+
 ## 📝 라이선스
 
 MIT License
 
-## 🤝 기여하기
+## 한 줄 회고
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- 박진형 : 프로젝트를 임하며 필수적인 기술인 웹 크롤링과 DB 생성 및 vscode 와 연동을 전부 수업시간에 배웠었으나, 수업을 듣는 것과 손으로 해보는 것에 큰 차이가 있음을 느낄 수 있었습니다. 앞으로 시작 이전 꼭 있어야 할 과정과 요소를 숙지하여 효율적인 진행을 해야겠다 다짐하는 의미있는 시간이었습니다.
+- 오흥재 : csv를 활용해서 데이터를 수집하고 db를 만들어 테이블을 저장하여 데이터를 다뤘지만, 다음에는 실제 크롤링을 해서 문제를 해결하는 방법을 다뤄봐야겠다. 또한 git merge에 대한 개념에 대해서 조금 더 친숙해져야겠다고 생각이 들었다.
+- 김민정 : 실무에서는 완벽하게 하려는 고정관념이 있었는데 기간이 촉박한 상태에서는 유연하게 개발하는 방식을 본능적으로 터득하게 됐고,
+그동안에는 기획을 먼저하고 서비스에 필요한 데이터를 사용자에게 입력받아서 
+사용했는데 내가 원하는 데이터가 있는 사이트가 있을 때까지 일일히 찾아서 크롤링하거나 openAPI로 요청하여 정제 시켜서 저장하는 일련의 과정을 거쳐야 하는 수고로움을 경험하므로써 AI의 필요성을 느낄 수 있었다
+- 박도연: DB ERD 설계가 간단해보여도 고려사항이 많아서 수시로 어려움을 겪었다. DB를 연동해 쿼리를 던져 streamlit에 띄우는 과정에서 여러 방법이 있다는 것도 알았다. 다음엔 좀 더 잘 활용해보고 싶다.
