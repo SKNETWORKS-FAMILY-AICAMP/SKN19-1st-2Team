@@ -5,12 +5,16 @@
 
 import streamlit as st
 import pandas as pd
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from back.db.kmj.db_config import get_conn
 
 conn = get_conn()
 cursor = conn.cursor()
 
-query = "SELECT * FROM vehicle_reg WHERE 1=1"
+# query = "SELECT * FROM vehicle_reg WHERE 1=1"
 
 st.set_page_config(page_title="맞춤 추천 - DOCHICHA.Inc", page_icon="💡")
 
@@ -48,9 +52,12 @@ def main():
     with col2:
         car_type = st.selectbox("선호 차종", ["승용차", "SUV", "트럭", "버스"])
         gender = st.selectbox("성별", ["남성", "여성"])
-        brand_preference = st.multiselect(
+        brand_preference = st.selectbox(
             "선호 브랜드", ["현대", "기아", "쉐보레", "르노삼성", "쌍용"]
         )
+    st.text(
+        f"{age_group}, {region}, {car_type}, {gender}, {brand_preference}, {budget}"
+    )
 
     # 추천 버튼
     if st.button("🎯 추천받기", type="primary"):
