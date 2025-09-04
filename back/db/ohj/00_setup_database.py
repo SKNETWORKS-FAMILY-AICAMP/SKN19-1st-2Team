@@ -63,7 +63,7 @@ def check_requirements():
     print("🔍 필수 요구사항 확인 중...")
     
     # 1) .env 파일 확인
-    ROOT = Path(__file__).resolve().parents[2]
+    ROOT = Path(__file__).resolve().parents[3]  # project_1st/ 까지 올라가기
     env_file = ROOT / ".env"
     
     if not env_file.exists():
@@ -108,6 +108,14 @@ def main():
         ("03_insert_service_centers_data.py", "Python"),
     ]
     
+    # MySQL 클라이언트 확인
+    mysql_available = True
+    try:
+        subprocess.run(["mysql", "--version"], capture_output=True, check=True)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        mysql_available = False
+        print("⚠️ MySQL 클라이언트를 찾을 수 없습니다. Python 스크립트만 실행합니다.")
+    
     success_count = 0
     
     # 각 스크립트 순차 실행
@@ -121,7 +129,11 @@ def main():
         print(f"\n📋 {script_name} 실행 중...")
         
         if script_type == "SQL":
-            success = run_sql_script(script_path)
+            if mysql_available:
+                success = run_sql_script(script_path)
+            else:
+                print(f"⚠️ {script_name} 건너뜀 (MySQL 클라이언트 없음)")
+                success = True  # 건너뛰기로 처리
         else:  # Python
             success = run_python_script(script_path)
         

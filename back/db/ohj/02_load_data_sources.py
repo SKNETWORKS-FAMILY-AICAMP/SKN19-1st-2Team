@@ -22,10 +22,15 @@ class DataLoader:
         self.data_dir = data_dir
     
     def load_csv(self, filename: str, **kwargs) -> pd.DataFrame:
-        """CSV 파일 로드"""
+        """CSV 파일 로드 (인코딩 폴백 지원)"""
         try:
             file_path = self.data_dir / filename
-            df = pd.read_csv(file_path, **kwargs)
+            # UTF-8로 먼저 시도
+            try:
+                df = pd.read_csv(file_path, encoding="utf-8-sig", **kwargs)
+            except UnicodeDecodeError:
+                # CP949로 폴백
+                df = pd.read_csv(file_path, encoding="cp949", **kwargs)
             logger.info(f"CSV 파일 로드 완료: {filename}, shape: {df.shape}")
             return df
         except Exception as e:
@@ -107,12 +112,12 @@ def load_car_registration_data(data_dir: Path) -> pd.DataFrame:
 
 if __name__ == "__main__":
     # 테스트 실행
-    ROOT = Path(__file__).resolve().parents[2]  # project_1st/
+    ROOT = Path(__file__).resolve().parents[3]  # project_1st/
     DATA_DIR = ROOT / "data" / "ohj"
     
     try:
         df = load_auto_repair_data(DATA_DIR)
-        print(f"✅ 정비소 데이터 로드 성공: {df.shape}")
+        print(f"[SUCCESS] 정비소 데이터 로드 성공: {df.shape}")
         print(f"컬럼: {list(df.columns)}")
     except Exception as e:
-        print(f"❌ 데이터 로드 실패: {e}")
+        print(f"[ERROR] 데이터 로드 실패: {e}")
