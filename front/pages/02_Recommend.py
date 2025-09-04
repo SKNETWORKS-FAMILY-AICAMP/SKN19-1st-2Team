@@ -135,14 +135,14 @@ def main():
 
                 # ✅ 플레이스홀더 8개에 정확히 맞춘 순서
                 params = (
-                    min_price,  # WHERE BETWEEN %s
-                    max_price,  # WHERE BETWEEN %s
-                    target_price,  # ABS(model_price - %s)
-                    brand_preference,  # comp_name = %s
-                    maker_like,  # LOWER(comp_name) LIKE LOWER(%s)
-                    car_type_like,  # LOWER(model_type) LIKE LOWER(%s)
-                    car_type,  # model_type = %s
-                    30,  # LIMIT %s
+                    min_price,
+                    max_price,
+                    target_price,
+                    brand_preference,
+                    maker_like,
+                    car_type_like,
+                    car_type,
+                    30,
                 )
 
                 cursor.execute(base_query, params)
