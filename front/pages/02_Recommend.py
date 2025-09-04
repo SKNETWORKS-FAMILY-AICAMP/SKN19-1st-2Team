@@ -26,8 +26,8 @@ def main():
     try:
         price_is_won = float(_avg) >= 100_000
     except Exception:
-        price_is_won = True  # 안전빵: 원 단위로 처리
-    # ========================================================================
+        price_is_won = True
+    # =======================================================================
 
     # --- 옵션 로드 ---
     cursor.execute("SELECT DISTINCT age_group FROM vehicle_reg")
@@ -183,14 +183,13 @@ def main():
             else:
                 df = pd.DataFrame(rows, columns=[c[0] for c in cursor.description])
 
-                # DB값 그대로 보여주기 (단위 라벨만 분기)
-                price_col_label = "가격(원)" if price_is_won else "가격(만원)"
-                df[price_col_label] = pd.to_numeric(df["model_price"], errors="coerce")
+                # 가격 컬럼(숫자 그대로) + 단위 라벨
+                price_col = "가격(원)" if price_is_won else "가격(만원)"
+                df[price_col] = pd.to_numeric(df["model_price"], errors="coerce")
 
-                # 보기좋게 문자열 표시도 추가(천단위 콤마)
-                df[price_col_label + " 표시"] = df[price_col_label].apply(
-                    lambda x: f"{int(x):,}" if pd.notnull(x) else ""
-                )
+                # 이미지 URL 정리
+                if "img_url" in df.columns:
+                    df["img_url"] = df["img_url"].fillna("").astype(str).str.strip()
 
                 title = "🎉 추천 결과"
                 if used_pad is not None:
@@ -199,19 +198,30 @@ def main():
                     title += " (완화 매칭: 스코어 순)"
 
                 st.subheader(title)
-                show_cols = [
-                    c
-                    for c in [
-                        "comp_name",
-                        "model_name",
-                        "model_type",
-                        price_col_label,
-                        price_col_label + " 표시",
-                        "img_url",
-                    ]
-                    if c in df.columns
+
+                display_cols = [
+                    "comp_name",
+                    "model_name",
+                    "model_type",
+                    price_col,
+                    "img_url",
                 ]
-                st.dataframe(df[show_cols], use_container_width=True)
+                df_display = df[[c for c in display_cols if c in df.columns]]
+
+                # ✅ ImageColumn + NumberColumn(천단위 포맷) 적용
+                st.dataframe(
+                    df_display,
+                    column_config={
+                        price_col: st.column_config.NumberColumn(
+                            price_col, format="%,d"
+                        ),
+                        "img_url": st.column_config.ImageColumn(
+                            "이미지", help="클릭해서 확대", width="small"
+                        ),
+                    },
+                    use_container_width=True,
+                    hide_index=True,
+                )
 
         except Exception as e:
             st.error(f"추천 중 오류가 발생했습니다: {e}")
