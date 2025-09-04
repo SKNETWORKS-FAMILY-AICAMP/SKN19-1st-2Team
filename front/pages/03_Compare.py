@@ -1,19 +1,47 @@
 # front/pages/03_Compare.py
 """
-⭐ 열람 페이지에서 담은 모델만 비교하는 페이지
+열람 페이지에서 ⭐로 담은 모델만 비교하는 페이지
 - 썸네일 행 + 스펙 비교표(세로=항목, 가로=모델)
-- '차이만 보기' 토글, 개별 제거/전체 비우기, CSV 다운로드
+- '차이만 보기' 토글, 개별 제거/전체 비우기
+- ※ CSV 다운로드 버튼 제거, 전체 폰트 확대
 """
-
 import streamlit as st
 import pandas as pd
-from datetime import date, datetime
+from datetime import date
 
 st.set_page_config(
     page_title="차량 비교 - DOCHICHA.Inc",
     page_icon="⚖️",
     layout="wide",
 )
+
+# ================== 폰트/컴포넌트 사이즈 업 ==================
+st.markdown("""
+<style>
+/* 전체 기본 폰트 확대 */
+[data-testid="stAppViewContainer"] * { font-size: 17px; }
+
+/* 제목 계층 확대 */
+h1 { font-size: 2.3rem; font-weight: 900; letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; font-weight: 800; }
+h3 { font-size: 1.3rem; font-weight: 800; }
+
+/* 캡션(작게 보이는 텍스트)도 조금 키우기 */
+.stCaption, div[data-testid="stCaptionContainer"] { font-size: 1rem !important; opacity: 0.85; }
+
+/* 버튼 가독성 업 */
+div.stButton > button { font-size: 1rem; padding: 0.5rem 0.9rem; border-radius: 10px; }
+
+/* DataFrame(표) 폰트 확대 */
+div[data-testid="stDataFrame"] { font-size: 1.05rem; }
+div[data-testid="stDataFrame"] thead th { font-size: 1.02rem; }
+div[data-testid="stDataFrame"] tbody td { font-size: 1.05rem; }
+
+/* 선택 칩 영역 여백 */
+.sel-chips { margin: 8px 0 6px; }
+</style>
+""", unsafe_allow_html=True)
+# ============================================================
 
 # -------------------------------
 # 세션 보장
@@ -98,7 +126,6 @@ def _fallback_load_cars():
 
 @st.cache_data(show_spinner=False)
 def load_cars():
-    # 프로젝트에 공용 모듈이 있다면 사용 (없으면 폴백)
     try:
         from front.components.data import load_cars as _load  # 필요 시 경로 조정
         return _load()
@@ -128,19 +155,15 @@ top_l, top_r = st.columns([1, 1])
 with top_l:
     st.markdown(f"**담긴 모델:** {len(sel)}대")
     try:
-        # 당신의 구조에서 Recommend는 pages/02_Recommend.py 입니다.
         st.page_link("pages/02_Recommend.py", label="← 열람 페이지로 돌아가기")
     except Exception:
         pass
 with top_r:
-    c1, c2 = st.columns([1, 1])
+    c1, _ = st.columns([1, 1])   # CSV 다운로드 제거 → 오른쪽 칸 비움
     with c1:
         if st.button("🧹 전체 비우기", use_container_width=True):
             st.session_state.favorites.clear()
             st.rerun()
-    with c2:
-        # CSV 다운로드 버튼은 표 생성 후 렌더
-        pass
 
 if len(sel) == 0:
     st.info("열람 페이지에서 '☆ 비교 담기'를 눌러 모델을 먼저 담아주세요.")
@@ -160,7 +183,7 @@ if df.empty:
     st.stop()
 
 # 선택 칩(개별 제거)
-st.markdown("#### 선택된 모델")
+st.markdown('<div class="sel-chips"></div>', unsafe_allow_html=True)
 chips = st.columns(len(df))
 for col, (_, row) in zip(chips, df.iterrows()):
     with col:
@@ -200,14 +223,5 @@ if diff_only:
 else:
     view_to_show = view
 
-# 표 & 다운로드
+# 표 렌더 (CSV 다운로드 제거됨)
 st.dataframe(view_to_show, use_container_width=True)
-
-csv = view_to_show.to_csv(encoding="utf-8-sig")
-st.download_button(
-    "CSV 다운로드",
-    data=csv,
-    file_name=f"DOCHICAR_compare_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-    mime="text/csv",
-    use_container_width=True,
-)
